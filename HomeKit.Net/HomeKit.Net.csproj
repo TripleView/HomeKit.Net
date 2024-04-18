@@ -9,10 +9,10 @@
 		<OpenApiGenerateDocuments>false</OpenApiGenerateDocuments>
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 		<Authors />
-		<Description>通过本依赖包，用户可以通过代码模拟出各种各样的智能家居设备，并添加到苹果手机的家庭app中，这样我们就能在手机上控制这些模拟的智能家居设备执行一些我们在代码里配置好的操作，有了原生api，大家就可以尽情的发挥想象力去搞事情了
-Through this dependency package, users can simulate various smart home devices through code and add them to the home app of Apple mobile phones, so that we can control these simulated smart home devices on the phone to execute some of the things we have written in the code. With configured operations and native APIs, everyone can use their imagination to do things.</Description>
-		<PackageReleaseNotes>通过本依赖包，用户可以通过代码模拟出各种各样的智能家居设备，并添加到苹果手机的家庭app中，这样我们就能在手机上控制这些模拟的智能家居设备执行一些我们在代码里配置好的操作，有了原生api，大家就可以尽情的发挥想象力去搞事情了
-Through this dependency package, users can simulate various smart home devices through code and add them to the home app of Apple mobile phones, so that we can control these simulated smart home devices on the phone to execute some of the things we have written in the code. With configured operations and native APIs, everyone can use their imagination to do things.</PackageReleaseNotes>
+		<Description>HomeKit的原生c#sdk,他可以模拟各种各样的homekit智能家居设备。
+HomeKit's C# native SDK, which can simulate HomeKit's smart home devices</Description>
+		<PackageReleaseNotes>HomeKit的原生c#sdk,他可以模拟各种各样的homekit智能家居设备。
+HomeKit's C# native SDK, which can simulate HomeKit's smart home devices</PackageReleaseNotes>
 		<RepositoryUrl>https://github.com/TripleView/HomeKit.Net</RepositoryUrl>
 		<RepositoryType>github</RepositoryType>
 		<Copyright>MIT</Copyright>
