@@ -7,7 +7,32 @@
 		<Nullable>enable</Nullable>
 		<!--<GenerateDocumentationFile>True</GenerateDocumentationFile>-->
 		<OpenApiGenerateDocuments>false</OpenApiGenerateDocuments>
+		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+		<Authors />
+		<Description>通过本依赖包，用户可以通过代码模拟出各种各样的智能家居设备，并添加到苹果手机的家庭app中，这样我们就能在手机上控制这些模拟的智能家居设备执行一些我们在代码里配置好的操作，有了原生api，大家就可以尽情的发挥想象力去搞事情了
+Through this dependency package, users can simulate various smart home devices through code and add them to the home app of Apple mobile phones, so that we can control these simulated smart home devices on the phone to execute some of the things we have written in the code. With configured operations and native APIs, everyone can use their imagination to do things.</Description>
+		<PackageReleaseNotes>通过本依赖包，用户可以通过代码模拟出各种各样的智能家居设备，并添加到苹果手机的家庭app中，这样我们就能在手机上控制这些模拟的智能家居设备执行一些我们在代码里配置好的操作，有了原生api，大家就可以尽情的发挥想象力去搞事情了
+Through this dependency package, users can simulate various smart home devices through code and add them to the home app of Apple mobile phones, so that we can control these simulated smart home devices on the phone to execute some of the things we have written in the code. With configured operations and native APIs, everyone can use their imagination to do things.</PackageReleaseNotes>
+		<RepositoryUrl>https://github.com/TripleView/HomeKit.Net</RepositoryUrl>
+		<RepositoryType>github</RepositoryType>
+		<Copyright>MIT</Copyright>
+		<IsPackable>true</IsPackable>
+		<PackageProjectUrl>https://github.com/TripleView/HomeKit.Net</PackageProjectUrl>
+		<PackageReadmeFile>ReadMe.md</PackageReadmeFile>
+		<Version>1.0.0</Version>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 	</PropertyGroup>
+
+	<ItemGroup>
+	  <None Include="..\LICENSE">
+	    <Pack>True</Pack>
+	    <PackagePath>\</PackagePath>
+	  </None>
+	  <None Include="..\ReadMe.md">
+	    <Pack>True</Pack>
+	    <PackagePath>\</PackagePath>
+	  </None>
+	</ItemGroup>
 
 	<ItemGroup>
 		<PackageReference Include="BouncyCastle.Cryptography" Version="2.3.0" />
