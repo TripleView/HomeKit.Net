@@ -1,0 +1,44 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFrameworks>net6.0;net8.0</TargetFrameworks>
+		<OutputType>Library</OutputType>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<!--<GenerateDocumentationFile>True</GenerateDocumentationFile>-->
+		<OpenApiGenerateDocuments>false</OpenApiGenerateDocuments>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="BouncyCastle.Cryptography" Version="2.3.0" />
+		<PackageReference Include="IPNetwork2" Version="2.6.548" />
+		<!--<PackageReference Include="Makaretu.Dns" Version="2.0.1" />-->
+		<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+		<PackageReference Include="NSec.Cryptography" Version="22.4.0" />
+		<PackageReference Include="SixLabors.ImageSharp" Version="3.1.4" />
+		<PackageReference Include="srp" Version="1.0.7" />
+		<PackageReference Include="Swashbuckle.AspNetCore" Version="6.2.3" />
+		<!--<PackageReference Include="Zeroconf" Version="3.6.11" />-->
+		<PackageReference Include="ZXing.Net.Bindings.ImageSharp.V2" Version="0.16.14" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Content Update="Resources\characteristics.json">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</Content>
+		<Content Update="Resources\services.json">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</Content>
+	</ItemGroup>
+
+	<ItemGroup>
+		<None Update="Resources\characteristics.json">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+		<None Update="Resources\services.json">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+	</ItemGroup>
+
+
+</Project>
