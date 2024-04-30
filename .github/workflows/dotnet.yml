@@ -45,4 +45,8 @@ jobs:
       shell: pwsh
       env:
         APIKEY: ${{ secrets.APIKEY }}
-      run: dotnet nuget push HomeKit.Net/bin/Release/HomeKit.Net.{{github.ref_name}}.nupkg --api-key $env:APIKEY --source https://api.nuget.org/v3/index.json
+        TagVersion: ${{github.ref_name}}
+      run: | 
+        $Version = $env:TagVersion -replace '^v'
+        $FullPath = "HomeKit.Net/bin/Release/HomeKit.Net.{0}.nupkg" -f $Version
+        dotnet nuget push $FullPath --api-key $env:APIKEY --source https://api.nuget.org/v3/index.json
