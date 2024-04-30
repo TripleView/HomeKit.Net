@@ -6,7 +6,7 @@ name: .NET
 on:
   push:
     tags:
-      - '*.*.*'
+      - 'v*.*.*'
 
 jobs:
   build:
@@ -34,7 +34,7 @@ jobs:
       run: |
         $content = './HomeKit.Net/HomeKit.Net.csproj'
         $xmldata = [xml](Get-Content $content)
-        $Version = "$env:TagVersion"
+        $Version = $env:TagVersion -replace '^v'
         $node = $xmldata.Project.PropertyGroup
         $node.Version = $Version
         $xmldata.Save($content)
