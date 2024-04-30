@@ -45,4 +45,4 @@ jobs:
       shell: pwsh
       env:
         APIKEY: ${{ secrets.APIKEY }}
-      run: dotnet nuget push HomeKit.Net/HomeKit.Net/bin/Release/HomeKit.Net.{{github.ref_name}}.nupkg --api-key $env:APIKEY --source https://api.nuget.org/v3/index.json
+      run: dotnet nuget push HomeKit.Net/bin/Release/HomeKit.Net.{{github.ref_name}}.nupkg --api-key $env:APIKEY --source https://api.nuget.org/v3/index.json
