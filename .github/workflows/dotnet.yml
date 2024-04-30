@@ -27,7 +27,7 @@ jobs:
       run: dotnet build --no-restore
     - name: Test
       run: dotnet test --no-build --verbosity normal
-    - name: Change Csproj Version
+    - name: Change Package Version
       shell: pwsh
       env:
         TagVersion: ${{github.ref_name}}
