@@ -57,51 +57,59 @@ public class HttpResponse
 
     public void Send()
     {
-        if (IsSend)
+        try
         {
-            return;
-        }
-        else
-        {
-            IsSend = true;
-        }
-
-        Headers[HttpHeaders.ContentType] =
-            string.IsNullOrWhiteSpace(ContentType) ? "text/plain; charset=utf-8" : ContentType;
-        Headers[HttpHeaders.ContentLength] = TempBytes.Count.ToString();
-
-        var header =
-            $"{Protocol} {(int)StatusCode} {StatusCodeDescriptionDic[StatusCode]}{HttpCore.NewLine}";
-
-        if (TempBytes.Count > 0)
-        {
-            // header += HttpCore.NewLine;
-            foreach (var pair in Headers)
+            if (IsSend)
             {
-                header += $"{pair.Key}: {pair.Value}{HttpCore.NewLine}";
+                return;
             }
-        }
+            else
+            {
+                IsSend = true;
+            }
 
-        var headerBytes = header.ToBytes().ToList();
-        // Console.WriteLine($"TempBytes.Count:{TempBytes.Count}");
-        byte[] lineBytes = Encoding.UTF8.GetBytes(HttpCore.NewLine);
-        headerBytes.AddRange(lineBytes);
-        if (TempBytes.Count > 0)
+            Headers[HttpHeaders.ContentType] =
+                string.IsNullOrWhiteSpace(ContentType) ? "text/plain; charset=utf-8" : ContentType;
+            Headers[HttpHeaders.ContentLength] = TempBytes.Count.ToString();
+
+            var header =
+                $"{Protocol} {(int)StatusCode} {StatusCodeDescriptionDic[StatusCode]}{HttpCore.NewLine}";
+
+            if (TempBytes.Count > 0)
+            {
+                // header += HttpCore.NewLine;
+                foreach (var pair in Headers)
+                {
+                    header += $"{pair.Key}: {pair.Value}{HttpCore.NewLine}";
+                }
+            }
+
+            var headerBytes = header.ToBytes().ToList();
+            // Console.WriteLine($"TempBytes.Count:{TempBytes.Count}");
+            byte[] lineBytes = Encoding.UTF8.GetBytes(HttpCore.NewLine);
+            headerBytes.AddRange(lineBytes);
+            if (TempBytes.Count > 0)
+            {
+                headerBytes.AddRange(TempBytes);
+            }
+
+
+            var bytes = headerBytes.ToArray();
+
+            var cc = bytes.GetString();
+            // Console.WriteLine($"发送的报文为:{cc}");
+            if (HapCrypto != null)
+            {
+                bytes = HapCrypto.Encrypt(bytes);
+            }
+
+            Body.Write(bytes, 0, bytes.Length);
+            HapCrypto = null;
+        }
+        catch (Exception e)
         {
-            headerBytes.AddRange(TempBytes);
+            Console.WriteLine(e);
         }
-
-
-        var bytes = headerBytes.ToArray();
-
-        var cc = bytes.GetString();
-        // Console.WriteLine($"发送的报文为:{cc}");
-        if (HapCrypto != null)
-        {
-            bytes = HapCrypto.Encrypt(bytes);
-        }
-
-        Body.Write(bytes, 0, bytes.Length);
-        HapCrypto = null;
+       
     }
 }
