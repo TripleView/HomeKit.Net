@@ -1,8 +1,10 @@
+using System.IO;
 using System.Net;
 using System.Security.Cryptography;
 using System.Text;
 using HomeKit.Net;
 using HomeKit.Net.HttpServer;
+using HomeKit.Net.Serialize;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using PublishedService = HomeKit.Net.Traffic.PublishedService;
@@ -22,7 +24,6 @@ public class AccessoryDriver
 
     public State State { get; set; }
     public Dictionary<string, List<string>> Topics { get; set; }
-    public string PersistFile { get; set; }
 
     public SrpServer SrpServer { set; get; }
     public AccessoryMDNSServiceInfo MdnsServiceInfo { get; set; }
@@ -34,14 +35,108 @@ public class AccessoryDriver
     private object lockObj = new object();
 
     private CancellationToken token;
-    public AccessoryDriver(byte[] pinCode = null, int port = 51234, string mac = null,
-        string persistFile = "accessory.state", string listenAddress = "")
+
+    private bool isFinalClose = false;
+
+    private string basePath= Path.Combine(AppContext.BaseDirectory, "state.json");
+
+    public AccessoryDriver(byte[] pinCode = null, int port = 51234, string mac = null)
     {
-        PersistFile = persistFile;
+
         Address = Utils.GetIpAddress();
-        State = new State(address: Address, pinCode: pinCode, mac: mac, port: port);
         Port = port;
         Topics = new Dictionary<string, List<string>>();
+        State = new State(address: Address, pinCode: pinCode, mac: mac, port: port);
+
+        var hasOldState = RestoreState();
+        if (!hasOldState)
+        {
+            State = new State(address: Address, pinCode: pinCode, mac: mac, port: port);
+            PersistentState();
+        }
+
+        AppDomain.CurrentDomain.UnhandledException += this.UnhandledException;
+        AppDomain.CurrentDomain.ProcessExit += CurrentDomain_ProcessExit;
+        //new Timer((a)=>
+        //{
+        //    PersistentState(true);
+        //}, null, TimeSpan.FromSeconds(60), TimeSpan.FromHours(1));
+    }
+
+    /// <summary>
+    /// 还原state
+    /// </summary>
+    /// <returns></returns>
+    private bool RestoreState()
+    {
+        var fi = new FileInfo(basePath);
+        var hasOldState = false;//判断是否有旧的状态
+        if (fi.Exists)
+        {
+            using (var fs = fi.OpenRead())
+            {
+                using (var sw = new StreamReader(fs))
+                {
+                    var stateTxt = sw.ReadToEnd();
+                    var settings = new JsonSerializerSettings();
+                    settings.Converters.Add(new IPAddressConverter());
+                    settings.Converters.Add(new IPEndPointConverter());
+                    settings.Formatting = Formatting.Indented;
+                    var oldState = JsonConvert.DeserializeObject<State>(stateTxt, settings);
+                    if (oldState.Address.Equals(Address) && this.Port == oldState.Port)
+                    {
+                        hasOldState = true;
+                        this.State = oldState;
+                    }
+                }
+            }
+
+
+        }
+
+        return hasOldState;
+    }
+
+    private void CurrentDomain_ProcessExit(object? sender, EventArgs e)
+    {
+        PersistentState();
+    }
+
+    private void UnhandledException(object e,UnhandledExceptionEventArgs ex)
+    {
+        PersistentState();
+    }
+
+    /// <summary>
+    /// 持久化状态
+    /// </summary>
+    private void PersistentState(bool isTimerTrigger=false)
+    {
+
+
+        var settings = new JsonSerializerSettings();
+        settings.Converters.Add(new IPAddressConverter());
+        settings.Converters.Add(new IPEndPointConverter());
+        settings.Formatting = Formatting.Indented;
+
+        var c = this.State.IsPaired;
+        var state = JsonConvert.SerializeObject(this.State,settings);
+        var fi=new FileInfo(basePath);
+        if (fi.Exists)
+        {
+            fi.Delete();
+            Thread.Sleep(100);
+        }
+
+        using (var fs=File.OpenWrite(basePath))
+        {
+            using (var sr=new StreamWriter(fs))
+            {
+                sr.Write(state);
+                sr.Flush();
+                sr.Close();
+            }
+        }
     }
 
     /// <summary>
@@ -54,7 +149,7 @@ public class AccessoryDriver
     {
         Console.WriteLine($"{connectionString} Paired with {clientUuid} with permissions {perms.GetString()}");
         State.AddPairedClient(clientUuid, clientPublicKey, perms);
-        PersistAsync();
+        PersistentState();
         return true;
         // async_persist
     }
@@ -67,17 +162,8 @@ public class AccessoryDriver
     public bool UnPair(Guid clientUuid)
     {
         State.RemovePairedClient(clientUuid);
-        PersistAsync();
+        PersistentState();
         return true;
-        // async_persist
-    }
-
-    public void PersistAsync()
-    {
-    }
-
-    public void Persist()
-    {
     }
 
     public async Task StartAsync(CancellationToken token = default)
@@ -166,8 +252,6 @@ public class AccessoryDriver
             }
         }
 
-
-        var d = 123;
         // return sd;
     }
 
@@ -326,7 +410,5 @@ public class AccessoryDriver
                 // subscribeClients.RemoveAll(it => removeList.Contains(it));
             }
         }
-
-        // this.Channel
     }
 }
