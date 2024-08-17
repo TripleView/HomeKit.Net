@@ -52,6 +52,55 @@ namespace Demo
             //Test Multiple Accessories 测试多配件
             //await MultipleAccessories();
 
+            //测试空调
+            //await AirConditioner();
+
+        }
+
+        /// <summary>
+        /// test AirConditioner
+        /// 测试空调
+        /// </summary>
+        /// <returns></returns>
+        async static Task AirConditioner()
+        {
+            var cts = new CancellationTokenSource();
+            var driver = new AccessoryDriver(port: 6555);
+            var myAirConditioner = new AirConditioner(driver, "空调");
+            myAirConditioner.TargetHeatingCoolingStateSetValueCallBack += async (o) =>
+            {
+                var value = 1;
+                var isClose = false;
+                //3加热，1制冷
+                switch (o)
+                {
+                    case HeatingCoolingState.Cool:
+                        value = 1;
+                        break;
+                    case HeatingCoolingState.Heat:
+                        value = 3;
+                        break;
+                    case HeatingCoolingState.Close:
+                        isClose = true;
+                        break;
+                }
+
+                if (!isClose)
+                {
+                 
+                }
+                else
+                {
+             
+                }
+
+            };
+            myAirConditioner.TargetTemperatureSetValueCallBack += async (o) =>
+            {
+             
+            };
+
+            await driver.StartAsync(cts.Token);
         }
     }
 }

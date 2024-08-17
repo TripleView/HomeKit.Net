@@ -5,8 +5,10 @@ using System.Text;
 using HomeKit.Net;
 using HomeKit.Net.HttpServer;
 using HomeKit.Net.Serialize;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
+using ZXing;
 using PublishedService = HomeKit.Net.Traffic.PublishedService;
 using Publisher = HomeKit.Net.Traffic.Publisher;
 using TrafficMonitor = HomeKit.Net.Traffic.TrafficMonitor;
@@ -38,15 +40,27 @@ public class AccessoryDriver
 
     private bool isFinalClose = false;
 
-    private string basePath= Path.Combine(AppContext.BaseDirectory, "state.json");
+    private string basePath = Path.Combine(AppContext.BaseDirectory, "state.json");
+    /// <summary>
+    /// Default log level|默认的日志等级
+    /// </summary>
+    public LogLevel DefaultLogLevel { get; set; }
 
-    public AccessoryDriver(byte[] pinCode = null, int port = 51234, string mac = null)
+    private ILogger<AccessoryDriver> logger;
+    public AccessoryDriver(byte[] pinCode = null, int port = 51234, string mac = null, LogLevel defaultLogLevel = LogLevel.Information)
     {
-
         Address = Utils.GetIpAddress();
         Port = port;
         Topics = new Dictionary<string, List<string>>();
         State = new State(address: Address, pinCode: pinCode, mac: mac, port: port);
+
+        DefaultLogLevel = defaultLogLevel;
+
+        logger = LoggerFactory.Create(it =>
+        {
+            it.AddFilter(level => level == DefaultLogLevel);
+            it.AddConsole();
+        }).CreateLogger<AccessoryDriver>();
 
         var hasOldState = RestoreState();
         if (!hasOldState)
@@ -102,7 +116,7 @@ public class AccessoryDriver
         PersistentState();
     }
 
-    private void UnhandledException(object e,UnhandledExceptionEventArgs ex)
+    private void UnhandledException(object e, UnhandledExceptionEventArgs ex)
     {
         PersistentState();
     }
@@ -110,9 +124,8 @@ public class AccessoryDriver
     /// <summary>
     /// 持久化状态
     /// </summary>
-    private void PersistentState(bool isTimerTrigger=false)
+    private void PersistentState(bool isTimerTrigger = false)
     {
-
 
         var settings = new JsonSerializerSettings();
         settings.Converters.Add(new IPAddressConverter());
@@ -120,17 +133,17 @@ public class AccessoryDriver
         settings.Formatting = Formatting.Indented;
 
         var c = this.State.IsPaired;
-        var state = JsonConvert.SerializeObject(this.State,settings);
-        var fi=new FileInfo(basePath);
+        var state = JsonConvert.SerializeObject(this.State, settings);
+        var fi = new FileInfo(basePath);
         if (fi.Exists)
         {
             fi.Delete();
             Thread.Sleep(100);
         }
 
-        using (var fs=File.OpenWrite(basePath))
+        using (var fs = File.OpenWrite(basePath))
         {
-            using (var sr=new StreamWriter(fs))
+            using (var sr = new StreamWriter(fs))
             {
                 sr.Write(state);
                 sr.Flush();
@@ -147,7 +160,7 @@ public class AccessoryDriver
     /// <param name="perms"></param>
     public bool Pair(Guid clientUuid, byte[] clientPublicKey, byte[] perms, string connectionString)
     {
-        Console.WriteLine($"{connectionString} Paired with {clientUuid} with permissions {perms.GetString()}");
+        logger.LogDebug($"{connectionString} Paired with {clientUuid} with permissions {perms.GetString()}");
         State.AddPairedClient(clientUuid, clientPublicKey, perms);
         PersistentState();
         return true;
@@ -191,7 +204,7 @@ public class AccessoryDriver
                     }
                     catch (Exception e)
                     {
-                        Console.WriteLine(e);
+                        logger.LogError("error",e);
                     }
                 }
 
@@ -396,11 +409,11 @@ public class AccessoryDriver
                 {
                     var tc = clientContext.Client.GetStream();
                     tc.Write(sendDataBytes, 0, sendDataBytes.Length);
-                    // Console.WriteLine(subscribeClient + "发送成功");
+                    // logger.LogDebug(subscribeClient + "发送成功");
                 }
                 catch (Exception e)
                 {
-                    Console.WriteLine(e);
+                    logger.LogError("Publish error", e);
                     // throw;
                 }
             }

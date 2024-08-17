@@ -1,7 +1,9 @@
+using Microsoft.Extensions.Logging;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.RegularExpressions;
+using ZXing;
 
 namespace HomeKit.Net.HttpServer;
 
@@ -21,6 +23,7 @@ public class Channel : IDisposable
     // private bool isInitMap=false;
     // private Dictionary<string, HapHandler> HapHandlers;
 
+    private ILogger<Channel> logger;
     public Dictionary<string, ClientContext> ClientContexts { set; get; }
     public AccessoryDriver AccessoryDriver { get; set; }
 
@@ -36,6 +39,12 @@ public class Channel : IDisposable
         AccessoryDriver = accessoryDriver;
         // this.HapHandlers = new Dictionary<string, HapHandler>();
         ClientContexts = new Dictionary<string, ClientContext>();
+
+        logger = LoggerFactory.Create(it =>
+        {
+            it.AddFilter(level => level == AccessoryDriver.DefaultLogLevel);
+            it.AddConsole();
+        }).CreateLogger<Channel>();
     }
 
 
@@ -50,10 +59,10 @@ public class Channel : IDisposable
         {
             if (token.IsCancellationRequested)
             {
-                Console.WriteLine("我停止了");
+                logger.LogDebug("我停止了");
                 break;
             }
-            //Console.WriteLine("我在运行");
+            //logger.LogDebug("我在运行");
             listener.BeginAcceptTcpClient(OnCompleteAcceptTcpClient, listener);
             await Task.Delay(100);
         }
@@ -63,7 +72,7 @@ public class Channel : IDisposable
     {
         try
         {
-            Console.WriteLine("进来了");
+            logger.LogDebug("进来了");
             var listener = asyncResult.AsyncState as TcpListener;
             var tc = listener.EndAcceptTcpClient(asyncResult);
             DealTcp(tc);
@@ -71,13 +80,13 @@ public class Channel : IDisposable
         }
         catch (Exception e)
         {
-            Console.WriteLine(e);
+            logger.LogError("OnCompleteAcceptTcpClient error", e);
         }
     }
 
     private void DealTcp(TcpClient tc)
     {
-        Console.WriteLine($"连接的信息为{tc.Client.RemoteEndPoint.ToString()}");
+        logger.LogDebug($"连接的信息为{tc.Client.RemoteEndPoint.ToString()}");
         var allBytes = new List<byte>();
         var bytes = new byte[100];
 
@@ -119,7 +128,7 @@ public class Channel : IDisposable
     /// <returns></returns>
     protected virtual HttpRequest ParseHttpRequest(byte[] body, string connectionString)
     {
-        // Console.WriteLine($"ParseHttpRequest:{body.Length}");
+        // logger.LogDebug($"ParseHttpRequest:{body.Length}");
         byte[] bodyClone = new byte[body.Length];
         Array.Copy(body, bodyClone, body.Length);
 
@@ -130,7 +139,7 @@ public class Channel : IDisposable
             {
                 hapCrypto.ReceiveData(body);
                 body = hapCrypto.Decrypt();
-                // Console.WriteLine($"ParseHttpRequest解析后长度:{body.Length}");
+                // logger.LogDebug($"ParseHttpRequest解析后长度:{body.Length}");
                 if (body.Length == 0)
                 {
                     body = bodyClone;
@@ -233,7 +242,7 @@ public class Channel : IDisposable
         var connectionString = originConnectionString.Split(":")[0];
         if (!tc.Connected)
         {
-            Console.WriteLine($"{originConnectionString} Read connection is not Connected");
+            logger.LogDebug($"{originConnectionString} Read connection is not Connected");
             // stream.Close();
             tc.Close();
             return;
@@ -249,12 +258,12 @@ public class Channel : IDisposable
         }
         catch (Exception e)
         {
-            Console.WriteLine(e);
+            logger.LogError("OnCompleteReadFromTCPClientStream error", e);
         }
 
         if (readCount == 0)
         {
-            Console.WriteLine($"{originConnectionString} Read connection dropped");
+            logger.LogDebug($"{originConnectionString} Read connection dropped");
             // this.ClientContexts[connectionString].Client = tc;
             // this.ClientContexts[connectionString].ConnectionString = originConnectionString;
             // stream.Close();
@@ -263,7 +272,7 @@ public class Channel : IDisposable
             return;
         }
 
-        // Console.WriteLine($"读取出的字节数为{readCount}--" + tc.Available);
+        // logger.LogDebug($"读取出的字节数为{readCount}--" + tc.Available);
         var tempByte = new byte[readCount];
         Array.Copy(bytes, 0, tempByte, 0, readCount);
         allBytes.AddRange(tempByte);
@@ -286,8 +295,7 @@ public class Channel : IDisposable
             {
                 if (ClientContexts[connectionString].ConnectionString != originConnectionString)
                 {
-                    var d = 123;
-                    Console.WriteLine("同一个客户端，但是不一致了");
+                    logger.LogDebug("同一个客户端，但是不一致了");
                     ClientContexts[connectionString].Client = tc;
                     ClientContexts[connectionString].ConnectionString = originConnectionString;
                 }
@@ -297,14 +305,14 @@ public class Channel : IDisposable
 
             var body = Encoding.UTF8.GetString(allBytes.ToArray());
             var isHtml = HttpParser.IsHtml(body);
-            // Console.WriteLine($"receive:{allBytes.Count}");
-            // Console.WriteLine(Encoding.UTF8.GetString(allBytes.ToArray()));
+            // logger.LogDebug($"receive:{allBytes.Count}");
+            // logger.LogDebug(Encoding.UTF8.GetString(allBytes.ToArray()));
 
             var httpRequest = ParseHttpRequest(allBytes.ToArray(), connectionString);
-            Console.WriteLine($"http请求:{httpRequest.Path}");
+            logger.LogDebug($"http请求:{httpRequest.Path}");
             await InternalDoResponse(httpRequest, stream, connectionString);
 
-            // Console.WriteLine($"处理完成，继续监听,当前网络状态：{stream.Socket.Connected}");
+            // logger.LogDebug($"处理完成，继续监听,当前网络状态：{stream.Socket.Connected}");
             data.Bytes = new byte[100];
             data.AllBytes.Clear();
             bytes = data.Bytes;

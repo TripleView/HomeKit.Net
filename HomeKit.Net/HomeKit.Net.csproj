@@ -19,7 +19,7 @@ HomeKit's C# native SDK, which can simulate HomeKit's smart home devices</Packag
 		<IsPackable>true</IsPackable>
 		<PackageProjectUrl>https://github.com/TripleView/HomeKit.Net</PackageProjectUrl>
 		<PackageReadmeFile>ReadMe.md</PackageReadmeFile>
-		<Version>1.0.1</Version>
+		<Version>1.1.0</Version>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 	</PropertyGroup>
 

@@ -10,7 +10,7 @@ namespace HomeKit.Net.HttpServer;
 
 public class HapHandler
 {
-    private ILogger<HapHandler> logger = LoggerFactory.Create(it => it.AddConsole()).CreateLogger<HapHandler>();
+    private ILogger<HapHandler> logger;
     public AccessoryDriver Driver { get; }
 
     public HapCrypto HapCrypto { get; set; }
@@ -21,11 +21,16 @@ public class HapHandler
     {
         Driver = driver;
         PairVerifyOneEncryptionContext = new PairVerifyOneEncryptionContext();
+        logger= LoggerFactory.Create(it =>
+        {
+            it.AddFilter(level => level == driver.DefaultLogLevel);
+            it.AddConsole();
+        }).CreateLogger<HapHandler>();
     }
 
     public async Task SendAuthenticationErrorTlvResponse(HttpContext e, Hap_Tlv_States state)
     {
-        Console.WriteLine("未认证");
+        logger.LogDebug("未认证");
         e.Response.StatusCode = StatusCode.Status200OK;
         var tlvParams = new List<TlvItem>();
         tlvParams.Add(new TlvItem(new byte[] { (byte)Hap_Tlv_Tags.SEQUENCE_NUM },
@@ -35,7 +40,6 @@ public class HapHandler
 
         var c2 = new Tlv().Encode(tlvParams);
         var length = c2.Length;
-        // Console.WriteLine($"length:{length}");
         e.Response.ContentLength = length;
         e.Response.ContentType = Const.PAIRING_RESPONSE_TYPE;
         e.Response.Write(c2);
@@ -65,7 +69,6 @@ public class HapHandler
 
                     var c2 = new Tlv().Encode(tlvParams);
                     var length = c2.Length;
-                    // Console.WriteLine($"length:{length}");
                     e.Response.ContentLength = length;
                     e.Response.ContentType = Const.PAIRING_RESPONSE_TYPE;
                     e.Response.Write(c2);
@@ -76,7 +79,7 @@ public class HapHandler
 
                 if (sequence == Hap_Tlv_States.M1)
                 {
-                    Console.WriteLine($"Pairing [1/5]");
+                    logger.LogDebug($"Pairing [1/5]");
                     Driver.SetupSrpVerifier();
 
                     tlvParams.Add(new TlvItem(new byte[] { (byte)Hap_Tlv_Tags.SEQUENCE_NUM },
@@ -87,7 +90,6 @@ public class HapHandler
 
                     e.Response.StatusCode = StatusCode.Status200OK;
                     var length = c2.Length;
-                    // Console.WriteLine($"length:{length}");
 
                     e.Response.ContentLength = length;
                     e.Response.ContentType = Const.PAIRING_RESPONSE_TYPE;
@@ -100,7 +102,7 @@ public class HapHandler
                 }
                 else if (sequence == Hap_Tlv_States.M3)
                 {
-                    Console.WriteLine($"Pairing [2/5]");
+                    logger.LogDebug($"Pairing [2/5]");
                     var A = result.FirstOrDefault(it => it.Tag[0] == (byte)Hap_Tlv_Tags.PUBLIC_KEY);
                     var M = result.FirstOrDefault(it => it.Tag[0] == (byte)Hap_Tlv_Tags.PASSWORD_PROOF);
                     Driver.SrpServer.SetA(A.Value);
@@ -112,14 +114,13 @@ public class HapHandler
 
                     e.Response.StatusCode = StatusCode.Status200OK;
                     var length = c2.Length;
-                    // Console.WriteLine($"length:{length}");
                     e.Response.ContentLength = length;
                     e.Response.ContentType = Const.PAIRING_RESPONSE_TYPE;
                     e.Response.Write(c2);
                 }
                 else if (sequence == Hap_Tlv_States.M5)
                 {
-                    Console.WriteLine($"Pairing [3/5]");
+                    logger.LogDebug($"Pairing [3/5]");
                     var encryptedData =
                         result.FirstOrDefault(it => it.Tag[0] == (byte)Hap_Tlv_Tags.ENCRYPTED_DATA);
                     var sessionKey = Driver.SrpServer.Kb;
@@ -137,7 +138,7 @@ public class HapHandler
                     var clientLtpk = tlvItems.FirstOrDefault(it => it.Tag[0] == (byte)Hap_Tlv_Tags.PUBLIC_KEY);
                     var clientProof = tlvItems.FirstOrDefault(it => it.Tag[0] == (byte)Hap_Tlv_Tags.PROOF);
 
-                    Console.WriteLine($"Pairing [4/5]");
+                    logger.LogDebug($"Pairing [4/5]");
                     var outputKey = HKDF.DeriveKey(new HashAlgorithmName(nameof(SHA512)), sessionKey, 32,
                         Const.PAIRING_4_SALT, Const.PAIRING_4_INFO);
                     var data = Utils.MergeBytes(outputKey, clientUserName.Value, clientLtpk.Value);
@@ -150,7 +151,7 @@ public class HapHandler
                         //Bad signature, abort.
                     }
 
-                    Console.WriteLine($"Pairing [5/5]");
+                    logger.LogDebug($"Pairing [5/5]");
 
                     var outputKey5 = HKDF.DeriveKey(new HashAlgorithmName(nameof(SHA512)), sessionKey, 32,
                         Const.PAIRING_5_SALT, Const.PAIRING_5_INFO);
@@ -181,7 +182,6 @@ public class HapHandler
                     var message6 = new Tlv().Encode(tlvItem6);
                     e.Response.StatusCode = StatusCode.Status200OK;
                     var length = message6.Length;
-                    // Console.WriteLine($"length:{length}");
                     e.Response.ContentLength = length;
                     e.Response.ContentType = Const.PAIRING_RESPONSE_TYPE;
                     e.Response.Write(message6);
@@ -190,16 +190,16 @@ public class HapHandler
         }
         catch (Exception exception)
         {
-            Console.WriteLine(exception);
+           logger.LogError("PairSetup error",exception);
             throw;
         }
     }
 
     public async Task GetAccessories(HttpContext e)
     {
-        Console.WriteLine("GetAccessories");
+      
         var accessories = Driver.GetAccessories();
-
+        logger.LogDebug("GetAccessories,"+accessories.ToJson());
         var jsonSetting = new JsonSerializerSettings
         {
             NullValueHandling = NullValueHandling.Ignore,
@@ -212,12 +212,12 @@ public class HapHandler
         e.Response.ContentLength = bytes.Length;
         e.Response.ContentType = Const.JSON_RESPONSE_TYPE;
         e.Response.Write(bytes);
-        Console.WriteLine("GetAccessories 结束");
+        logger.LogDebug("GetAccessories 结束");
     }
 
     public async Task GetCharacteristics(HttpContext e)
     {
-        Console.WriteLine($"{e.ConnectionString} GetCharacteristics");
+        logger.LogDebug($"{e.ConnectionString} GetCharacteristics");
         Const.Flag = true;
         var query = e.Request.Query["id"];
         var topics = query.Split(",").ToList();
@@ -225,7 +225,7 @@ public class HapHandler
         var items = new List<GetCharacteristicsResponseItem>();
         foreach (var topic in topics)
         {
-            logger.LogInformation($"调试{topic}");
+            logger.LogDebug($"调试{topic}");
             var topicArr = topic.Split(".");
             var aid = int.Parse(topicArr[0]);
             var iid = int.Parse(topicArr[1]);
@@ -276,11 +276,11 @@ public class HapHandler
                     item.Status = HapServerStatus.SUCCESS;
                 }
 
-                logger.LogInformation($"获取的特征信息为:{characteristics.ToString()}");
+                logger.LogDebug($"获取的特征信息为:{characteristics.ToString()}");
             }
             catch (Exception exception)
             {
-                Console.WriteLine(exception);
+                logger.LogError("error",exception);
                 throw;
             }
 
@@ -290,7 +290,7 @@ public class HapHandler
         if (items.Any(it => it.Status != HapServerStatus.SUCCESS))
         {
             e.Response.StatusCode = StatusCode.MULTI_STATUS;
-            Console.WriteLine("GetCharacteristics 中间结果MULTI_STATUS");
+            logger.LogDebug("GetCharacteristics 中间结果MULTI_STATUS");
         }
         else
         {
@@ -318,7 +318,7 @@ public class HapHandler
         e.Response.ContentLength = bytes.Length;
         e.Response.ContentType = Const.JSON_RESPONSE_TYPE;
         e.Response.Write(bytes);
-        Console.WriteLine("GetCharacteristics结束");
+        logger.LogDebug("GetCharacteristics结束");
     }
 
     /// <summary>
@@ -327,12 +327,13 @@ public class HapHandler
     /// <param name="e"></param>
     public async Task SetCharacteristics(HttpContext e)
     {
-        Console.WriteLine($"{e.ConnectionString} SetCharacteristics");
+        logger.LogDebug($"{e.ConnectionString} SetCharacteristics");
         using (var stream = new MemoryStream())
         {
             await e.Request.Body.CopyToAsync(stream);
             stream.Seek(0, SeekOrigin.Begin);
             var characteristicsServerResponseStr = stream.ToArray().GetString();
+            logger.LogDebug($"接收到字符串:{characteristicsServerResponseStr}");
             //{"characteristics":[{"aid":1,"iid":9,"ev":true}]}
             var characteristics =
                 JsonConvert.DeserializeObject<CharacteristicsServerResponse>(characteristicsServerResponseStr);
@@ -352,7 +353,7 @@ public class HapHandler
                     {
                         var topic = Const.GetTopic(item.Aid, item.Iid);
                         var action = item.Ev == true ? "Subscribed" : "Unsubscribed";
-                        Console.WriteLine($"{action} client {e.ConnectionString} to topic {topic}");
+                        logger.LogDebug($"{action} client {e.ConnectionString} to topic {topic}");
                         await Driver.SubscribeClientTopic(e.ConnectionString, topic, true);
                     }
 
@@ -397,10 +398,10 @@ public class HapHandler
 
             if (!hadError)
             {
-                Console.WriteLine("SetCharacteristics  nocontent");
+                logger.LogDebug("SetCharacteristics  nocontent");
                 e.Response.HapCrypto = HapCrypto;
                 e.Response.StatusCode = StatusCode.NO_CONTENT;
-                //
+
                 return;
             }
 
@@ -421,9 +422,9 @@ public class HapHandler
             e.Response.StatusCode = StatusCode.MULTI_STATUS;
             e.Response.ContentLength = bytes.Length;
             e.Response.ContentType = Const.JSON_RESPONSE_TYPE;
-            Console.WriteLine("SetCharacteristics 结束前");
+            logger.LogDebug("SetCharacteristics 结束前");
             e.Response.Write(bytes);
-            Console.WriteLine("SetCharacteristics 结束");
+            logger.LogDebug("SetCharacteristics 结束");
         }
     }
 
@@ -435,7 +436,7 @@ public class HapHandler
         }
         catch (Exception e)
         {
-            Console.WriteLine(e);
+            logger.LogError("WrapCharSetter error", e);
             return HapServerStatus.SERVICE_COMMUNICATION_FAILURE;
         }
 
@@ -450,7 +451,7 @@ public class HapHandler
     {
         try
         {
-            Console.WriteLine("pair-verify");
+            logger.LogDebug("pair-verify");
 
             if (!Driver.State.IsPaired)
             {
@@ -477,7 +478,7 @@ public class HapHandler
 
                 if (sequence == Hap_Tlv_States.M1)
                 {
-                    Console.WriteLine($"Pair verify [1/2]");
+                    logger.LogDebug($"Pair verify [1/2]");
 
                     var otherPublicKeyBytes = result.FirstOrDefault(it =>
                         it.Tag.CompareTwoBytes(new byte[] { (byte)Hap_Tlv_Tags.PUBLIC_KEY }));
@@ -532,7 +533,7 @@ public class HapHandler
                 }
                 else if (sequence == Hap_Tlv_States.M3)
                 {
-                    Console.WriteLine($"Pair verify [2/2]");
+                    logger.LogDebug($"Pair verify [2/2]");
                     var encryptedDataBytes =
                         result.FirstOrDefault(it => it.Tag[0] == (byte)Hap_Tlv_Tags.ENCRYPTED_DATA);
                     var hkdf = PairVerifyOneEncryptionContext.PreSessionKey;
@@ -546,7 +547,7 @@ public class HapHandler
                     }
                     catch (Exception exception)
                     {
-                        Console.WriteLine(exception);
+                        logger.LogError("m3 error",exception);
                         throw;
                     }
 
@@ -576,7 +577,7 @@ public class HapHandler
                     var ed25519Key =
                         PublicKey.Import(Ed25519.Ed25519, permClientPublic, KeyBlobFormat.RawPublicKey);
                     var ed25519VerifyResult = Ed25519.Ed25519.Verify(ed25519Key, material, clientProof.Value);
-                    Console.WriteLine($"{e.ConnectionString} Pair verify [2/2] verify result:{ed25519VerifyResult}");
+                    logger.LogDebug($"{e.ConnectionString} Pair verify [2/2] verify result:{ed25519VerifyResult}");
 
                     tlvParams.Add(new TlvItem(new byte[] { (byte)Hap_Tlv_Tags.SEQUENCE_NUM },
                         new byte[] { (byte)Hap_Tlv_States.M4 }));
@@ -586,7 +587,6 @@ public class HapHandler
                     var length = c2.Length;
 
                     HapCrypto = new HapCrypto(PairVerifyOneEncryptionContext.SharedKey);
-                    // Console.WriteLine($"length:{length}");
                     e.Response.ContentLength = length;
                     e.Response.ContentType = Const.PAIRING_RESPONSE_TYPE;
                     e.Response.Write(c2);
@@ -595,7 +595,7 @@ public class HapHandler
         }
         catch (Exception exception)
         {
-            Console.WriteLine(exception);
+            logger.LogError("PairVerify error", exception);
             throw;
         }
     }
@@ -604,7 +604,7 @@ public class HapHandler
     {
         try
         {
-            Console.WriteLine("Pairings");
+            logger.LogDebug("Pairings");
             var c = e.Request;
             using (var stream = new MemoryStream())
             {
@@ -615,17 +615,17 @@ public class HapHandler
                 switch (sequenceItem.Value[0])
                 {
                     case 3:
-                        Console.WriteLine("AddPairing");
+                        logger.LogDebug("AddPairing");
                         await AddPairing(result, e);
                         return;
                         break;
                     case 4:
-                        Console.WriteLine("RemovePairing");
+                        logger.LogDebug("RemovePairing");
                         await RemovePairing(result, e);
                         return;
                         break;
                     case 5:
-                        Console.WriteLine("ListPairings");
+                        logger.LogDebug("ListPairings");
                         await ListPairings(result, e);
                         return;
                         break;
@@ -634,7 +634,7 @@ public class HapHandler
         }
         catch (Exception exception)
         {
-            Console.WriteLine(exception);
+            logger.LogError("Pairings error", exception);
             throw;
         }
     }

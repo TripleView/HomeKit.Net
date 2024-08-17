@@ -24,10 +24,10 @@ public class Characteristics : IAssignIid
 
     public Accessory Accessory { get; set; }
 
-    public int? MaxValue { get; set; }
+    public float? MaxValue { get; set; }
 
-    public int? MinStep { get; set; }
-    public int? MinValue { get; set; }
+    public float? MinStep { get; set; }
+    public float? MinValue { get; set; }
     public int? MaximumLength { get; set; }
     public string Unit { get; set; }
 
@@ -169,30 +169,32 @@ public class Characteristics : IAssignIid
 
         if (Const.HAP_FORMAT_NUMERICS.Contains(Format))
         {
-            if (!(value is int || value is float))
+            if (!(value is int || value is float || value is short || value is double || value is long || value is byte))
             {
                 throw new Exception($"{Name}: value={value} is not a numeric value.");
             }
 
-            if (value is double doubleValue && MinStep.HasValue)
+            //if (Format == Const.HAP_FORMAT_UINT64 &&  MinStep.HasValue)
+            //{
+                
+            //    doubleValue = (ulong)Math.Round(MinStep.Value * Math.Round((ulong)(doubleValue / MinStep.Value)), 14);
+            //    if (MaxValue.HasValue)
+            //    {
+            //        doubleValue = Math.Min(doubleValue, MaxValue.Value);
+            //    }
+
+            //    if (MinValue.HasValue)
+            //    {
+            //        doubleValue = Math.Max(doubleValue, MinValue.Value);
+            //    }
+
+            //    ValidValueInValidValues(doubleValue);
+            //    return doubleValue;
+            //}
+
+            if (Format == Const.HAP_FORMAT_FLOAT && MinStep.HasValue)
             {
-                doubleValue = (int)Math.Round(MinStep.Value * Math.Round((double)(doubleValue / MinStep.Value)), 14);
-                if (MaxValue.HasValue)
-                {
-                    doubleValue = Math.Min(doubleValue, MaxValue.Value);
-                }
-
-                if (MinValue.HasValue)
-                {
-                    doubleValue = Math.Max(doubleValue, MinValue.Value);
-                }
-
-                ValidValueInValidValues(doubleValue);
-                return doubleValue;
-            }
-
-            if (value is float floatValue && MinStep.HasValue)
-            {
+                var floatValue= Convert.ToSingle(value);
                 floatValue = (float)Math.Round(MinStep.Value * Math.Round(floatValue / MinStep.Value), 14);
                 if (MaxValue.HasValue)
                 {
