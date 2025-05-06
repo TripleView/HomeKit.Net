@@ -167,3 +167,8 @@ public class TemperatureSensor : Accessory
 1. [HAP-Python](https://github.com/ikalchev/HAP-python)
 
 2. [ZeroConfig](https://github.com/cosinekitty/zeroconfig)
+
+# 写在最后
+如果各位靓仔觉得这个项目不错，欢迎一键三连（推荐，star，关注）,同时欢迎加入三合的开源交流群，QQ群号：799648362
+
+![QQ群799648362](https://img2024.cnblogs.com/blog/1323385/202412/1323385-20241216025914908-1726484063.jpg)
